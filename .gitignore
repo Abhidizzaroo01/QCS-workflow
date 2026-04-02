@@ -1,0 +1,8 @@
+# Ignore large images and segmentation outputs
+example2/images/
+examples/images/
+examples/WSI_analysis/58_HER2.ndpi
+example2/Batch_Nuclei_Mem_Seg/result/
+examples/Batch_Nuclei_Segmentation/0_nseg/
+examples/Batch_Nuclei_Segmentation/check/
+
