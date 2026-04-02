@@ -195,6 +195,4 @@ This runs an adaptive pipeline based on DAB OD, writes intermediate nuclei/membr
 - `*_cell_table.csv`
 - `batch_bioinfo_summary.csv` (after the batch finishes)
 
-## Git Ignore
 
-This repo uses `.gitignore` to avoid pushing large image artifacts and generated segmentation outputs. Commit primarily the code (`dqcs/`, `example2/`, `examples/`) and small metadata files.
