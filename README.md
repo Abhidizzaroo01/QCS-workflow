@@ -124,7 +124,7 @@ The scripts import the following packages (as used in `dqcs/` and the example sc
 
 ```powershell
 pip install numpy opencv-python scikit-image matplotlib pillow openslide-python
-pip install pandas scipy tiatoolbox
+pip install pandas scipy
 pip install cellpose
 ```
 
