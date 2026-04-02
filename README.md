@@ -107,85 +107,94 @@ Key library functions:
   - `bsps_score` : binary spatial proximity score (neighbors within r=25 um among OD>=60 cells)
   - `csps_mean` : continuous proximity score mean (neighbors within r=50 um among cells above baseline)
 
+## Setup & Run (Windows)
+
+### 1) Create a Python environment
+From the repository folder (`C:\Users\abhishekd_dizzaroo\Desktop\qcs`):
+
+```powershell
+cd "C:\Users\abhishekd_dizzaroo\Desktop\qcs"
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+```
+
+### 2) Install dependencies
+The scripts import the following packages (as used in `dqcs/` and the example scripts):
+
+```powershell
+pip install numpy opencv-python scikit-image matplotlib pillow openslide-python
+pip install pandas scipy tiatoolbox
+pip install cellpose
+```
+
+Notes:
+- Cellpose uses PyTorch under the hood. If `pip install cellpose` fails due to Torch, install Torch first (CPU is fine for testing).
+- OpenSlide on Windows sometimes requires installing the OpenSlide native binaries and ensuring they are on your system PATH.
+
+### 3) Fix the `sys.path.append(...)` lines in your scripts
+Some scripts currently hardcode Linux/WSL paths so Python can find the local `dqcs/` package. On Windows, you must update those lines to the absolute path where you stored this repository.
+
+Update these files:
+
+1) Nuclei-only segmentation:
+   - File: `example2/Batch_Nuclei_Segmentation/batch_nuclei_seg.py`
+   - Replace:
+     `sys.path.append('/home/aktsh/codes/')`
+   - With (example):
+     `sys.path.append('C:/Users/<YOUR_USER>/Desktop/qcs')`
+
+2) Nuclei + membrane segmentation + bioinformatics:
+   - File: `example2/Batch_Nuclei_Mem_Seg/batch_nm_seg.py`
+   - Replace:
+     `sys.path.append('/mnt/c/Users/abhishekd_dizzaroo/Desktop/qcs')`
+   - With (example):
+     `sys.path.append('C:/Users/<YOUR_USER>/Desktop/qcs')`
+
+Alternative (often cleaner): if you run commands from the repo root (`cd qcs`), you can usually remove the `sys.path.append(...)` lines entirely because the `dqcs/` folder is already in the repository.
+
+### 4) Prepare your input images folder
+The batch scripts use:
+`path = '../images/'`
+
+So you should place input tiles/patches here (relative to the repo root):
+- `C:\Users\<YOU>\Desktop\images\<tp>\...`
+
+Where `tp` is the tile subfolder used inside each script (for example `'0'`, `'3'`).
+
+If your `images/` folder is elsewhere, update the `path = '../images/'` line inside the scripts accordingly.
+
 ## How to Run the Example Scripts
 
 ### A) WSI -> patches (NDPI)
 Run:
 
-`examples/WSI_analysis/slide_analysis.py`
+```powershell
+python .\examples\WSI_analysis\slide_analysis.py
+```
 
-This script:
-
-- Loads `fn = '58_HER2.ndpi'` via the `Slide` class
-- Creates a thumbnail (`get_thumbnail`)
-- Extracts patches (`extract_patches_from_ndpi`)
-- Filters patches (`filter_patches`)
-
-You will need to make sure:
-
-- The `.ndpi` file exists at the expected path (edit `fn` and/or the working directory)
-- `openslide` is installed correctly on Windows (it often requires OS-native OpenSlide libraries)
+This script loads `fn = '58_HER2.ndpi'`, creates a thumbnail, extracts patches, and filters patches by OD. Ensure the `.ndpi` file is available where the script expects it.
 
 ### B) Nuclei-only batch segmentation
 Run:
 
-`example2/Batch_Nuclei_Segmentation/batch_nuclei_seg.py`
+```powershell
+python .\example2\Batch_Nuclei_Segmentation\batch_nuclei_seg.py
+```
 
-Expected script structure:
-
-- Set `path = '../images/'` and `tp = '<tile-type>'` (for example `'0'`)
-- `tpo = tp + '_nseg/'` output directory is created
-- For each image in `path + tp/`:
-  - deconvolve stains (`get_hd_clean`)
-  - enhance nuclei intensity (gamma adjustment)
-  - run Cellpose nuclei segmentation (`cellpose_seg` on the H channel)
-  - filter nuclei outlines (`filter_nuclei_annotations`)
-  - write annotations (`write_annotations`)
-  - optionally visualize overlays (`show_annotations_txt`)
+The script creates an output folder `tpo = tp + '_nseg/'` and writes per-image nuclei annotations (TXT + GeoJSON) and visualization overlays.
 
 ### C) Nuclei + Membrane + Bioinformatics (adaptive)
 Run:
 
-`example2/Batch_Nuclei_Mem_Seg/batch_nm_seg.py`
+```powershell
+python .\example2\Batch_Nuclei_Mem_Seg\batch_nm_seg.py
+```
 
-High-level behavior:
-
-- Sets `path = '../images/'` and chooses a tile folder using `tp`
-- For each input image:
-  - compute stain channels and DAB OD (pre-gamma)
-  - decide strong vs weak DAB
-  - segment nuclei and membranes accordingly
-  - write multiple intermediate/final annotation files
-  - run `patch_bioinformatics_v2`
-  - save `*_cell_table.csv` and print summary metrics
-- After the batch loop, saves `batch_bioinfo_summary.csv`
-
-## Dependencies
-
-From the code usage in `dqcs/` and the example scripts, the typical dependencies include:
-
-- Core imaging / math:
-  - `numpy`
-  - `opencv-python` (imported as `cv2`)
-  - `scikit-image`
-  - `matplotlib`
-  - `Pillow` (indirectly via `PIL.Image` in slide code)
-- WSI:
-  - `openslide-python` (and OpenSlide native libs)
-- Segmentation:
-  - `cellpose`
-- Quantification:
-  - `pandas`
-  - `scipy`
-- Optional stain normalization:
-  - `tiatoolbox` (used by `dqcs/stainnorm.py`)
-
-Note: `cellpose_seg()` in `dqcs/dseg.py` currently initializes with `gpu=True`. If you do not have a working GPU/CUDA setup, you may need to update that line (or adjust your environment).
-
-## Windows Notes (Important)
-
-Some of the example scripts contain `sys.path.append(...)` pointing to Linux paths (e.g. `/home/...` or `/mnt/...`). On Windows, you will likely need to update those lines to point to your local checkout of the repository so imports work correctly.
+This runs an adaptive pipeline based on DAB OD, writes intermediate nuclei/membrane outputs, and produces:
+- `*_cell_table.csv`
+- `batch_bioinfo_summary.csv` (after the batch finishes)
 
 ## Git Ignore
 
-This repo uses `.gitignore` to avoid pushing large image artifacts and generated segmentation outputs. Only code and small metadata files should be committed.
+This repo uses `.gitignore` to avoid pushing large image artifacts and generated segmentation outputs. Commit primarily the code (`dqcs/`, `example2/`, `examples/`) and small metadata files.
